@@ -123,3 +123,4 @@ echo "[9/9] (Opcional) Gerando certificado SSL com Let's Encrypt (Certbot)..."
 echo " Instalação finalizada com sucesso. Acesse http://$DOMINIO para verificar."
 
 echo "Você pode executar manualmente após os apontamentos serem realizados: sudo certbot --apache -d $DOMINIO"
+echo " script desenvolvido por Felipe Augusto Weissheimer"
