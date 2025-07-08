@@ -16,13 +16,15 @@ echo "[3/9] Criando diretório do site em $PASTA_SITE"
 mkdir -p "$PASTA_SITE"
 
 echo "[4/9] Criando usuário FTP ($USUARIO_FTP) com home em $PASTA_SITE"
-useradd -m -d "$PASTA_SITE" -s /usr/sbin/nologin "$USUARIO_FTP"
+useradd -m -d "$PASTA_SITE" -s /bin/bash "$USUARIO_FTP"
 echo "$USUARIO_FTP:$SENHA_FTP" | chpasswd
 
-echo "[5/9] Ajustando permissões do site..."
+echo "[5/9] Ajustando permissões do site para edição e herança de grupo..."
 chown -R "$USUARIO_FTP":www-data "$PASTA_SITE"
-find "$PASTA_SITE" -type d -exec chmod 2755 {} \;
-find "$PASTA_SITE" -type f -exec chmod 644 {} \;
+# Diretórios com setgid para herdar grupo e permissão rwxrwsr-x
+find "$PASTA_SITE" -type d -exec chmod 2775 {} \;
+# Arquivos com permissão rw-rw-r--
+find "$PASTA_SITE" -type f -exec chmod 664 {} \;
 
 echo "[6/9] Criando index.php de página em construção..."
 cat <<EOF > "$PASTA_SITE/index.php"
@@ -111,16 +113,20 @@ a2enmod rewrite
 systemctl reload apache2
 
 echo "[8/9] Ajustando configuração do vsftpd..."
+
 cp /etc/vsftpd.conf /etc/vsftpd.conf.bkp
+
 sed -i 's/^#\?write_enable=.*/write_enable=YES/' /etc/vsftpd.conf
 sed -i 's/^#\?chroot_local_user=.*/chroot_local_user=YES/' /etc/vsftpd.conf
 sed -i 's/^#\?local_enable=.*/local_enable=YES/' /etc/vsftpd.conf
-echo "allow_writeable_chroot=YES" >> /etc/vsftpd.conf
+
+grep -q "^allow_writeable_chroot=YES" /etc/vsftpd.conf || echo "allow_writeable_chroot=YES" >> /etc/vsftpd.conf
+
 systemctl restart vsftpd
 
 echo "[9/9] (Opcional) Gerando certificado SSL com Let's Encrypt (Certbot)..."
 
-echo " Instalação finalizada com sucesso. Acesse http://$DOMINIO para verificar."
+echo "Instalação finalizada com sucesso. Acesse http://$DOMINIO para verificar."
 
 echo "Você pode executar manualmente após os apontamentos serem realizados: sudo certbot --apache -d $DOMINIO"
-echo " script desenvolvido por Felipe Augusto Weissheimer"
+echo "Script desenvolvido por Felipe Augusto Weissheimer"
