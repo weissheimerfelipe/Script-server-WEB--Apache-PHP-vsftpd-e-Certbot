@@ -16,13 +16,13 @@ echo "[3/9] Criando diretório do site em $PASTA_SITE"
 mkdir -p "$PASTA_SITE"
 
 echo "[4/9] Criando usuário FTP ($USUARIO_FTP) com home em $PASTA_SITE"
-useradd -m -d "$PASTA_SITE" -s /usr/sbin/nologin "$USUARIO_FTP"
+useradd -m -d "$PASTA_SITE" -s /bin/bash "$USUARIO_FTP"
 echo "$USUARIO_FTP:$SENHA_FTP" | chpasswd
 
-echo "[5/9] Ajustando permissões do site..."
+echo "[5/9] Ajustando permissões do site para edição e herança de grupo..."
 chown -R "$USUARIO_FTP":www-data "$PASTA_SITE"
-find "$PASTA_SITE" -type d -exec chmod 2755 {} \;
-find "$PASTA_SITE" -type f -exec chmod 644 {} \;
+find "$PASTA_SITE" -type d -exec chmod 2775 {} \;
+find "$PASTA_SITE" -type f -exec chmod 664 {} \;
 
 echo "[6/9] Criando index.php de página em construção..."
 cat <<EOF > "$PASTA_SITE/index.php"
@@ -33,7 +33,7 @@ header('Content-Type: text/html; charset=UTF-8');
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>P&aacute;gina em Constru&ccedil;&atilde;o</title>
+  <title>Página em Construção</title>
   <style>
     body {
       margin: 0;
@@ -80,11 +80,20 @@ header('Content-Type: text/html; charset=UTF-8');
 <body>
   <div class="container">
     <div class="spinner"></div>
-    <h1>P&aacute;gina em Constru&ccedil;&atilde;o</h1>
-    <p>Estamos trabalhando para trazer novidades em breve.<br> Obrigado pela compreens&atilde;o!</p>
+    <h1>Página em Construção</h1>
+    <p>Estamos trabalhando para trazer novidades em breve.<br> Obrigado pela compreensão!</p>
   </div>
 </body>
 </html>
+EOF
+
+echo "[6.1/9] Criando arquivo .htaccess para URLs amigáveis..."
+cat <<EOF > "$PASTA_SITE/.htaccess"
+RewriteEngine On
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)\$ index.php?url=\$1 [QSA,L]
 EOF
 
 echo "[7/9] Criando VirtualHost do Apache..."
@@ -115,12 +124,11 @@ cp /etc/vsftpd.conf /etc/vsftpd.conf.bkp
 sed -i 's/^#\?write_enable=.*/write_enable=YES/' /etc/vsftpd.conf
 sed -i 's/^#\?chroot_local_user=.*/chroot_local_user=YES/' /etc/vsftpd.conf
 sed -i 's/^#\?local_enable=.*/local_enable=YES/' /etc/vsftpd.conf
-echo "allow_writeable_chroot=YES" >> /etc/vsftpd.conf
+grep -q "^allow_writeable_chroot=YES" /etc/vsftpd.conf || echo "allow_writeable_chroot=YES" >> /etc/vsftpd.conf
 systemctl restart vsftpd
 
 echo "[9/9] (Opcional) Gerando certificado SSL com Let's Encrypt (Certbot)..."
 
-echo " Instalação finalizada com sucesso. Acesse http://$DOMINIO para verificar."
-
+echo "Instalação finalizada com sucesso. Acesse http://$DOMINIO para verificar."
 echo "Você pode executar manualmente após os apontamentos serem realizados: sudo certbot --apache -d $DOMINIO"
-echo " script desenvolvido por Felipe Augusto Weissheimer"
+echo "Script desenvolvido por Felipe Augusto Weissheimer"
